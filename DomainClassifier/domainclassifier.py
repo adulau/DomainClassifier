@@ -15,11 +15,22 @@ __license__ = "AGPL version 3"
 __version__ = "0.0.1"
 
 
+
 class Extract:
+
+    """DomainClassifier Extract class is the base class for extracting domains
+    from a rawtext stream. When call, the rawtext parameter is a string
+    containing the raw data to be process."""
+
+
     def __init__(self, rawtext = None):
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = ['149.13.33.69']
+
+    """__origin is a private function to the ASN lookup for an IP address via
+    the Team Cymru DNS interface. ipadd is a string contain the IP address in a
+    decimal form."""
 
     def __origin(self, ipaddr=None):
 
@@ -32,6 +43,11 @@ class Extract:
             else:
                 return None
 
+    """domain method extracts potential domains matching any
+    string that is a serie of string with maximun 63 character separated by a
+    dot. The method used the rawtext defined at the instantiation of the class.
+    This return a list of a potential domain."""
+
     def domain(self):
         self.domain = []
         domain = re.compile(r'\b([a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})+)\b')
@@ -40,6 +56,12 @@ class Extract:
                 self.domain.append(x[0])
 
         return self.domain
+
+    """validdomain method used the extracted domains from the domain method to
+    generate a list of valid domain (at least existing in the authoritative DNS
+    server". The records type used are A, AAAA, SOA, MX and CNAME records. This
+    returns a list of existing domain. If the extended flag is true, a set is
+    return with the associated DNS resources found."""
 
     def validdomain(self, rtype=['A','AAAA','SOA','MX','CNAME'], extended=True):
         if extended is False:
@@ -58,6 +80,10 @@ class Extract:
                     else:
                         self.validdomain.append((domain,dnstype,answers[0]))
         return self.validdomain
+
+    """localizedomain method use the validdomain list (in extended format) to
+    localize per country code the associated resources. The cc argument specifies the
+    country code in ISO 3166-1 alpha-2 format to check for."""
 
     def localizedomain(self, cc=None):
         self.localdom = []
