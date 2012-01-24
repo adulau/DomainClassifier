@@ -28,6 +28,20 @@ print c.localizedomain(cc='LU')
 print "BE:"
 print c.localizedomain(cc='BE')
 ```
+
+### Sample output
+
+```python
+['foo.lu', 'abc.lu', 'a.b.c.d.e', '1.2.3.4', 'foo.be', 'www.belnet.be', 'www.cert.be', 'www.public.lu', 'www.allo.lu', 'www.eurodns.com', 'something-broken-www.google.com', 'www.google.lu']
+[('abc.lu', 'SOA', <DNS IN SOA rdata: neptun.vo.lu. Administrator.vo.lu. 2006063001 86400 7200 2419200 3600>), ('abc.lu', 'MX', <DNS IN MX rdata: 10 proteus.vo.lu.>), ('foo.be', 'A', <DNS IN A rdata: 188.65.217.78>), ('foo.be', 'AAAA', <DNS IN AAAA rdata: 2001:6f8:202:2df::2>), ('foo.be', 'SOA', <DNS IN SOA rdata: ka.quuxlabs.com. adulau.foo.be. 2010121901 21600 3600 604800 86400>), ('foo.be', 'MX', <DNS IN MX rdata: 10 mail.foo.be.>), ('www.belnet.be', 'A', <DNS IN A rdata: 193.190.198.39>), ('www.belnet.be', 'AAAA', <DNS IN AAAA rdata: 2001:6a8:3c80::39>), ('www.belnet.be', 'CNAME', <DNS IN CNAME rdata: fiorano.belnet.be.>), ('www.cert.be', 'A', <DNS IN A rdata: 193.190.198.61>), ('www.cert.be', 'AAAA', <DNS IN AAAA rdata: 2001:6a8:3c80::61>), ('www.cert.be', 'SOA', <DNS IN SOA rdata: ns.belnet.be. hostmaster.belnet.be. 2011121563 3600 1800 1209600 3600>), ('www.cert.be', 'MX', <DNS IN MX rdata: 10 mx2.belnet.be.>), ('www.cert.be', 'CNAME', <DNS IN CNAME rdata: cert.be.>), ('www.public.lu', 'A', <DNS IN A rdata: 194.154.200.74>), ('www.allo.lu', 'A', <DNS IN A rdata: 80.90.47.69>), ('www.eurodns.com', 'A', <DNS IN A rdata: 80.92.65.165>), ('www.google.lu', 'A', <DNS IN A rdata: 173.194.67.94>), ('www.google.lu', 'CNAME', <DNS IN CNAME rdata: www-cctld.l.google.com.>)]
+US:
+[('www.google.lu', 'A', <DNS IN A rdata: 173.194.67.94>), ('www.google.lu', 'CNAME', <DNS IN CNAME rdata: www-cctld.l.google.com.>)]
+LU:
+[('www.public.lu', 'A', <DNS IN A rdata: 194.154.200.74>), ('www.allo.lu', 'A', <DNS IN A rdata: 80.90.47.69>), ('www.eurodns.com', 'A', <DNS IN A rdata: 80.92.65.165>)]
+BE:
+[('foo.be', 'A', <DNS IN A rdata: 188.65.217.78>), ('www.belnet.be', 'A', <DNS IN A rdata: 193.190.198.39>), ('www.belnet.be', 'CNAME', <DNS IN CNAME rdata: fiorano.belnet.be.>), ('www.cert.be', 'A', <DNS IN A rdata: 193.190.198.61>), ('www.cert.be', 'CNAME', <DNS IN CNAME rdata: cert.be.>)]
+```
+
 ### Software Required
 
 * Python (tested successfully on version 2.6)
