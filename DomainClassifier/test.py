@@ -10,3 +10,6 @@ print "LU:"
 print c.localizedomain(cc='LU')
 print "BE:"
 print c.localizedomain(cc='BE')
+
+print c.include(expression=r'\.lu$')
+print c.exclude(expression=r'\.lu$')

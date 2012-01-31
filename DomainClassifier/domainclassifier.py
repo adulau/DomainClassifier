@@ -12,7 +12,7 @@ import socket
 __author__ = "Alexandre Dulaunoy"
 __copyright__ = "Copyright 2012, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 
 
@@ -27,6 +27,7 @@ class Extract:
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = ['149.13.33.69']
+        self.vdomain = []
 
     """__origin is a private function to the ASN lookup for an IP address via
     the Team Cymru DNS interface. ipadd is a string contain the IP address in a
@@ -68,6 +69,7 @@ class Extract:
             self.validdomain = set()
         else:
             self.validdomain = []
+
         for domain in self.domain:
             for dnstype in rtype:
                 try:
@@ -75,6 +77,7 @@ class Extract:
                 except:
                     pass
                 else:
+                    self.vdomain.append(domain)
                     if extended is False:
                         self.validdomain.add((domain))
                     else:
@@ -100,7 +103,43 @@ class Extract:
                 if(orig == cc): self.localdom.append(dom)
         return self.localdom
 
-    def filterdomain(self,filter=None):
-        pass
+    """exclude domains from a regular expression. If validdomain was called,
+    it's only on the valid domain list."""
+
+    def exclude(self,expression=None):
+        self.cleandomain = []
+
+        excludefilter = re.compile(expression)
+
+        if not self.vdomain:
+            domains = self.domain
+        else:
+            domains = self.vdomain
+
+        for dom in domains:
+            if excludefilter.search(dom):
+                pass
+            else:
+                self.cleandomain.append(dom)
+        return self.cleandomain
+
+    """include domains from a regular expression. If validdomain was called,
+    it's only on the valid domain list."""
+
+    def include(self,expression=None):
+        self.cleandomain = []
+
+        includefilter = re.compile(expression)
+
+        if not self.vdomain:
+            domains = self.domain
+        else:
+            domains = self.vdomain
+
+        for dom in domains:
+            if includefilter.search(dom):
+                self.cleandomain.append(dom)
+
+        return self.cleandomain
 
 
