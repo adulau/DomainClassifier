@@ -40,7 +40,8 @@ class Extract:
             a = self.presolver.query(clook, 'TXT')
             if a:
                 x = str(a[0]).split("|")
-                return x[2].strip()
+                x = map (lambda t: t.strip(), x)
+                return (x[0],x[2])
             else:
                 return None
 
@@ -94,12 +95,12 @@ class Extract:
         for dom in self.validdomain:
             if dom[1] == 'A':
                 ip = dom[2]
-                orig = self.__origin(ipaddr=dom[2])
+                orig = self.__origin(ipaddr=dom[2])[1]
                 if(orig == cc): self.localdom.append(dom)
             elif dom[1] == 'CNAME':
                 cname = str(dom[2])
                 ip = socket.gethostbyname(cname)
-                orig = self.__origin(ipaddr=ip)
+                orig = self.__origin(ipaddr=ip)[1]
                 if(orig == cc): self.localdom.append(dom)
         return self.localdom
 
