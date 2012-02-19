@@ -27,6 +27,8 @@ print "LU:"
 print c.localizedomain(cc='LU')
 print "BE:"
 print c.localizedomain(cc='BE')
+print "Ranking:"
+print c.rankdomain()
 ```
 
 ### Sample output
@@ -40,6 +42,8 @@ LU:
 [('www.public.lu', 'A', <DNS IN A rdata: 194.154.200.74>), ('www.allo.lu', 'A', <DNS IN A rdata: 80.90.47.69>), ('www.eurodns.com', 'A', <DNS IN A rdata: 80.92.65.165>)]
 BE:
 [('foo.be', 'A', <DNS IN A rdata: 188.65.217.78>), ('www.belnet.be', 'A', <DNS IN A rdata: 193.190.198.39>), ('www.belnet.be', 'CNAME', <DNS IN CNAME rdata: fiorano.belnet.be.>), ('www.cert.be', 'A', <DNS IN A rdata: 193.190.198.61>), ('www.cert.be', 'CNAME', <DNS IN CNAME rdata: cert.be.>)]
+Ranking:
+[(1.0, 'foo.be'), (1.0000100806451599, 'www.belnet.be'), (1.0000100806451599, 'www.belnet.be'), (1.0000100806451599, 'www.cert.be'), (1.0000100806451599, 'www.cert.be'), (1.00021114864865, 'www.allo.lu'), (1.0002244274068299, 'www.public.lu'), (1.0002297794117601, 'www.eurodns.com'), (1.00338843724104, 'www.google.lu'), (1.00338843724104, 'www.google.lu')]
 ```
 
 ### Software Required
