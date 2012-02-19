@@ -12,7 +12,7 @@ import socket
 __author__ = "Alexandre Dulaunoy"
 __copyright__ = "Copyright 2012, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 
 
@@ -27,6 +27,7 @@ class Extract:
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = ['149.13.33.69']
+        self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
 
     """__origin is a private function to the ASN lookup for an IP address via
@@ -40,8 +41,28 @@ class Extract:
             a = self.presolver.query(clook, 'TXT')
             if a:
                 x = str(a[0]).split("|")
-                x = map (lambda t: t.strip(), x)
+                # why so many spaces?
+                x = map (lambda t: t.replace("\"","").strip(), x)
                 return (x[0],x[2])
+            else:
+                return None
+    """__bgpanking return the ranking the float value of an ASN.
+    """
+    def __bgpranking(self, asn=None):
+        if asn:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.connect((self.bgprankingserver,43))
+            s.send(asn+"\r\n")
+            r = ''
+            while True:
+                d = s.recv(2048)
+                r = r + d
+                if d == '':
+                    break
+            s.close()
+            if len(r) > 0:
+                rank = r.split("\n")[1].split(",")[1]
+                return float(rank)
             else:
                 return None
 
@@ -103,6 +124,34 @@ class Extract:
                 orig = self.__origin(ipaddr=ip)[1]
                 if(orig == cc): self.localdom.append(dom)
         return self.localdom
+
+    """rankdomain method use the validdomain list (in extended format to rank
+    each domain with an IP address. Return a sorted list of tuples (ranking,
+    domain).
+    """
+
+    def rankdomain(self):
+        self.rankdom = []
+
+        if self.validdomain:
+            for dom in self.validdomain:
+                rank = None
+                if dom[1] == 'A':
+                    ip = dom[2]
+                    asn = self.__origin(ipaddr=dom[2])[0]
+                    rank = self.__bgpranking(asn)
+                    t = (rank, dom[0])
+                    self.rankdom.append(t)
+                elif dom[1] == 'CNAME':
+                    cname = str(dom[2])
+                    ip = socket.gethostbyname(cname)
+                    asn = self.__origin(ipaddr=ip)[0]
+                    rank = self.__bgpranking(asn)
+                    t = (rank, dom[0])
+                    self.rankdom.append(t)
+            return sorted(self.rankdom, key=lambda d: d[0])
+
+
 
     """exclude domains from a regular expression. If validdomain was called,
     it's only on the valid domain list."""
