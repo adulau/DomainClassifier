@@ -27,6 +27,7 @@ class Extract:
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = ['149.13.33.69']
+        self.presolver.lifetime = 1.0
         self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
 
@@ -38,14 +39,16 @@ class Extract:
 
         if ipaddr:
             clook = IPy.IP(str(ipaddr)).reverseName().replace('.in-addr.arpa.','.origin.asn.cymru.com')
-            a = self.presolver.query(clook, 'TXT')
-            if a:
-                x = str(a[0]).split("|")
-                # why so many spaces?
-                x = map (lambda t: t.replace("\"","").strip(), x)
-                return (x[0],x[2])
-            else:
-                return None
+            try: a = self.presolver.query(clook, 'TXT')
+            except dns.resolver.NXDOMAIN: return None
+            except dns.exception.Timeout: return None
+        if a:
+		x = str(a[0]).split("|")
+		# why so many spaces?
+		x = map (lambda t: t.replace("\"","").strip(), x)
+		return (x[0],x[2])
+        else:
+		return None
     """__bgpanking return the ranking the float value of an ASN.
     """
     def __bgpranking(self, asn=None):
@@ -61,8 +64,13 @@ class Extract:
                     break
             s.close()
             if len(r) > 0:
-                rank = r.split("\n")[1].split(",")[1]
-                return float(rank)
+                try: rr = r.split("\n")[1].split(",")
+		except IndexError: return None 
+		if len(rr) > 1:
+			rank = rr[1]
+			return float(rank)
+		else:
+			return None
             else:
                 return None
 
@@ -136,16 +144,21 @@ class Extract:
         if self.validdomain:
             for dom in self.validdomain:
                 rank = None
+                asn = None
                 if dom[1] == 'A':
                     ip = dom[2]
-                    asn = self.__origin(ipaddr=dom[2])[0]
+                    o = self.__origin(ipaddr=dom[2])
+                    if o:
+                        asn = o[0]
                     rank = self.__bgpranking(asn)
                     t = (rank, dom[0])
                     self.rankdom.append(t)
                 elif dom[1] == 'CNAME':
                     cname = str(dom[2])
-                    ip = socket.gethostbyname(cname)
-                    asn = self.__origin(ipaddr=ip)[0]
+                    try: ip = socket.gethostbyname(cname)
+                    except: continue
+                    try: asn = self.__origin(ipaddr=ip)[0]
+                    except TypeError: continue
                     rank = self.__bgpranking(asn)
                     t = (rank, dom[0])
                     self.rankdom.append(t)
