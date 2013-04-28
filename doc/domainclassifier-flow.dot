@@ -1,0 +1,20 @@
+digraph g{
+  z [label="raw text including probable hostnames"];
+  a -> b;
+  a [label=".domain()",shape=box,fillcolor="palegreen",style="filled"];
+  z -> a [label=" extracting"];
+  b [label=".validdomain(extended=True)",shape=box,fillcolor="palegreen",style="filled"];
+  c [label=".localizedomain(cc='country code')",shape=box,fillcolor="palegreen",style="filled"];
+ b->c;
+  e [label=".validdomain(extended=False)",shape=box,fillcolor="palegreen",style="filled"];
+a->e;
+f [label=".rankdomain()",shape=box,fillcolor="palegreen",style="filled"];
+c->f;
+g [label=".include(expression=regexp)",shape=box,fillcolor="palegreen",style="filled" ];
+h [label=".exclude(expression=regexp)",shape=box,fillcolor="palegreen",style="filled" ];
+f->g;
+g->h;
+e->g;
+i [label="set of hostnames", fillcolor="palegreen",style="filled"];
+h->i;
+}
