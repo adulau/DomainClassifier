@@ -4,6 +4,9 @@ DomainClassifier
 DomainClassifier is a simple Python library to extract and classify Internet
 domains from raw text files following their existence, localization or attributes.
 
+
+![An overview of the DomainClassifier methods](https://raw.github.com/adulau/DomainClassifier/master/doc/domainclassifier-flow.png)
+
 How To Use It
 -------------
 
