@@ -132,7 +132,6 @@ class Extract:
                     self.ipaddresses.append((d))
                 else:
                     orig = self.__origin(ipaddr=d)
-                    print orig
                     self.ipaddresses.add((d,str(orig)))
 
         return self.ipaddresses
