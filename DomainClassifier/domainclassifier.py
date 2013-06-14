@@ -46,7 +46,7 @@ class Extract:
 		x = str(a[0]).split("|")
 		# why so many spaces?
 		x = map (lambda t: t.replace("\"","").strip(), x)
-		return (x[0],x[2])
+		return (x[0],x[2],a[0])
         else:
 		return None
     """__bgpanking return the ranking the float value of an ASN.
@@ -113,6 +113,29 @@ class Extract:
                     else:
                         self.validdomain.append((domain,dnstype,answers[0]))
         return self.validdomain
+
+    """ipaddress method extracts from the domain list the valid IPv4 addresses"""
+
+    def ipaddress(self, extended=False):
+        if extended is False:
+            self.ipaddresses = []
+        else:
+            self.ipaddresses = set()
+
+        for d in self.domain:
+            try:
+                socket.inet_aton(d)
+            except:
+                pass
+            else:
+                if extended is False:
+                    self.ipaddresses.append((d))
+                else:
+                    orig = self.__origin(ipaddr=d)
+                    print orig
+                    self.ipaddresses.add((d,str(orig)))
+
+        return self.ipaddresses
 
     """localizedomain method use the validdomain list (in extended format) to
     localize per country code the associated resources. The cc argument specifies the
