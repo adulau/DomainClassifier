@@ -26,7 +26,7 @@ class Extract:
     def __init__(self, rawtext = None):
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
-        self.presolver.nameservers = ['149.13.33.69']
+        self.presolver.nameservers = ['8.8.8.8','149.13.33.69']
         self.presolver.lifetime = 1.0
         self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
