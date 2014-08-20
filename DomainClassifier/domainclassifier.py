@@ -10,9 +10,9 @@ import IPy
 import socket
 
 __author__ = "Alexandre Dulaunoy"
-__copyright__ = "Copyright 2012, Alexandre Dulaunoy"
+__copyright__ = "Copyright 2012-2014, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.0.3"
+__version__ = "0.2"
 
 
 
