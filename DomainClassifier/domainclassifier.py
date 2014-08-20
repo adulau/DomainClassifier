@@ -146,12 +146,18 @@ class Extract:
         for dom in self.validdomain:
             if dom[1] == 'A':
                 ip = dom[2]
-                orig = self.__origin(ipaddr=dom[2])[1]
+                try:
+                    orig = self.__origin(ipaddr=dom[2])[1]
+                except:
+                    continue
                 if(orig == cc): self.localdom.append(dom)
             elif dom[1] == 'CNAME':
                 cname = str(dom[2])
                 ip = socket.gethostbyname(cname)
-                orig = self.__origin(ipaddr=ip)[1]
+                try:
+                    orig = self.__origin(ipaddr=ip)[1]
+                except:
+                    continue
                 if(orig == cc): self.localdom.append(dom)
         return self.localdom
 
