@@ -20,7 +20,7 @@ tp://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-b
 8 201.1.1.1")
 
 # extracting potentially valid domains from rawtext
-print c.domain()
+print c.potentialdomain()
 
 # reduce set of potentially valid domains to existing domains
 # (based on SOA,A,AAAA,CNAME,MX records)
