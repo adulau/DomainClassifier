@@ -30,6 +30,7 @@ class Extract:
         self.presolver.lifetime = 1.0
         self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
+        self.domain = self.potentialdomain()
 
     """__origin is a private function to the ASN lookup for an IP address via
     the Team Cymru DNS interface. ipadd is a string contain the IP address in a
@@ -65,7 +66,7 @@ class Extract:
             s.close()
             if len(r) > 0:
                 try: rr = r.split("\n")[1].split(",")
-		except IndexError: return None 
+		except IndexError: return None
 		if len(rr) > 1:
 			rank = rr[1]
 			return float(rank)
@@ -74,12 +75,12 @@ class Extract:
             else:
                 return None
 
-    """domain method extracts potential domains matching any
+    """potentialdomain method extracts potential domains matching any
     string that is a serie of string with maximun 63 character separated by a
     dot. The method used the rawtext defined at the instantiation of the class.
     This return a list of a potential domain."""
 
-    def domain(self):
+    def potentialdomain(self):
         self.domain = []
         domain = re.compile(r'\b([a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})+)\b')
         for x in domain.findall(self.rawtext):
