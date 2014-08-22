@@ -23,10 +23,10 @@ class Extract:
     containing the raw data to be process."""
 
 
-    def __init__(self, rawtext = None):
+    def __init__(self, rawtext=None, nameservers=['8.8.8.8']):
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
-        self.presolver.nameservers = ['8.8.8.8','149.13.33.69']
+        self.presolver.nameservers = nameservers
         self.presolver.lifetime = 1.0
         self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
