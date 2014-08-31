@@ -9,13 +9,28 @@ DomainClassifier can be used to extract Internet hosts from any free texts.
 
 ![An overview of the DomainClassifier methods](https://raw.github.com/adulau/DomainClassifier/master/doc/domainclassifier-flow.png)
 
+Install
+-------
+
+[DomainClassifier](https://pypi.python.org/pypi/DomainClassifier/) is part of the pypi package. It can be installed using the pip command:
+
+     pip install DomainClassifier
+
+```python
+
+In [11]: c = DomainClassifier.domainclassifier.Extract(rawtext="www.google.com foo.bar ppp.ppp")
+
+In [12]: c.potentialdomain()
+Out[12]: ['www.google.com', 'foo.bar']
+```
+
 How To Use It
 -------------
 
 ```python
-import domainclassifier
+import DomainClassifier.domainclassifier
 
-c = domainclassifier.Extract( rawtext = "www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be ht
+c = DomainClasifier.domainclassifier.Extract( rawtext = "www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be ht
 tp://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-broken-www.google.com www.google.lu trailing test www.facebook.com www.nic.ru www.youporn.com 8.8.8.
 8 201.1.1.1")
 
@@ -80,7 +95,7 @@ Exclude dot.lu:
 
 ### License
 
-Copyright (C) 2012-2013 Alexandre Dulaunoy - a(at)foo.be
+Copyright (C) 2012-2014 Alexandre Dulaunoy - a(at)foo.be
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
