@@ -144,6 +144,7 @@ class Extract:
     """ipaddress method extracts from the domain list the valid IPv4 addresses"""
 
     def ipaddress(self, extended=False):
+
         if extended is False:
             self.ipaddresses = []
         else:
@@ -151,15 +152,15 @@ class Extract:
 
         for d in self.domain:
             try:
-                socket.inet_aton(d)
+                ip = socket.gethostbyname(d)
             except:
-                pass
+                continue
+
+            if extended is False:
+                self.ipaddresses.append((ip))
             else:
-                if extended is False:
-                    self.ipaddresses.append((d))
-                else:
-                    orig = self.__origin(ipaddr=d)
-                    self.ipaddresses.add((d, str(orig)))
+                orig = self.__origin(ipaddr=ip)
+                self.ipaddresses.add((ip, str(orig)))
 
         return self.ipaddresses
 
@@ -279,9 +280,8 @@ if __name__ == "__main__":
     print "Ranking:"
     print c.rankdomain()
     print "List of ip addresses:"
-    print c.ipaddress(extended=True)
+    print c.ipaddress(extended=False)
     print "Include dot.lu:"
     print c.include(expression=r'\.lu$')
     print "Exclude dot.lu:"
     print c.exclude(expression=r'\.lu$')
-
