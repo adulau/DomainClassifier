@@ -13,7 +13,7 @@ import urllib2
 __author__ = "Alexandre Dulaunoy"
 __copyright__ = "Copyright 2012-2014, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.3"
+__version__ = "0.4"
 
 
 class Extract:
