@@ -13,7 +13,7 @@ import urllib2
 __author__ = "Alexandre Dulaunoy"
 __copyright__ = "Copyright 2012-2014, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.4"
+__version__ = "0.5"
 
 
 class Extract:
@@ -101,6 +101,13 @@ class Extract:
 
         return self.cleandomain
 
+    def text(self, rawtext=False):
+        if rawtext:
+            self.rawtext = rawtext
+            self.domain = self.potentialdomain()
+            self.vdomain = []
+            return True
+        return False
     """potentialdomain method extracts potential domains matching any
     string that is a serie of string with maximun 63 character separated by a
     dot. The method used the rawtext defined at the instantiation of the class.
@@ -123,9 +130,9 @@ class Extract:
 
     def validdomain(self, rtype=['A', 'AAAA', 'SOA', 'MX', 'CNAME'], extended=True):
         if extended is False:
-            self.validdomain = set()
+            self.vdomain = set()
         else:
-            self.validdomain = []
+            self.vdomain = []
 
         for domain in self.domain:
             for dnstype in rtype:
@@ -136,10 +143,10 @@ class Extract:
                 else:
                     self.vdomain.append(domain)
                     if extended is False:
-                        self.validdomain.add((domain))
+                        self.vdomain.add((domain))
                     else:
-                        self.validdomain.append((domain, dnstype, answers[0]))
-        return self.validdomain
+                        self.vdomain.append((domain, dnstype, answers[0]))
+        return self.vdomain
 
     """ipaddress method extracts from the domain list the valid IPv4 addresses"""
 
@@ -171,7 +178,7 @@ class Extract:
     def localizedomain(self, cc=None):
         self.localdom = []
 
-        for dom in self.validdomain:
+        for dom in self.vdomain:
             if dom[1] == 'A':
                 ip = dom[2]
                 try:
@@ -199,8 +206,8 @@ class Extract:
     def rankdomain(self):
         self.rankdom = []
 
-        if self.validdomain:
-            for dom in self.validdomain:
+        if self.vdomain:
+            for dom in self.vdomain:
                 rank = None
                 asn = None
                 if dom[1] == 'A':
@@ -229,6 +236,9 @@ class Extract:
     """exclude domains from a regular expression. If validdomain was called,
     it's only on the valid domain list."""
 
+    """exclude domains from a regular expression. If validdomain was called,
+    it's only on the valid domain list."""
+
     def exclude(self, expression=None):
         self.cleandomain = []
 
@@ -240,14 +250,14 @@ class Extract:
             domains = self.vdomain
 
         for dom in domains:
+            if type(dom) == tuple:
+                dom = dom[0]
+
             if excludefilter.search(dom):
                 pass
             else:
                 self.cleandomain.append(dom)
         return self.cleandomain
-
-    """include domains from a regular expression. If validdomain was called,
-    it's only on the valid domain list."""
 
     def include(self, expression=None):
         self.cleandomain = []
@@ -260,14 +270,17 @@ class Extract:
             domains = self.vdomain
 
         for dom in domains:
-            if includefilter.search(dom):
-                self.cleandomain.append(dom)
+            if type(dom) == tuple:
+                dom = dom[0]
 
-        return self.cleandomain
+            if includefilter.search(dom):
+                    self.cleandomain.append(dom)
+
+        return set(self.cleandomain)
 
 if __name__ == "__main__":
-    c = Extract(rawtext="www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be http://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-broken-www.google.com www.google.lu trailing test www.facebook.com www.nic.ru www.youporn.com 8.8.8.8 201.1.1.1 abc.dontexist", nameservers=['127.0.0.1'])
-
+    c = Extract(rawtext="www.foo.lu www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be http://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-broken-www.google.com www.google.lu trailing test www.facebook.com www.nic.ru www.youporn.com 8.8.8.8 201.1.1.1 abc.dontexist", nameservers=['127.0.0.1'])
+    c.text(rawtext="www.abc.lu www.xxx.com random text a test bric broc www.lemonde.fr www.belnet.be www.foo.be")
     print (c.potentialdomain())
     print (c.potentialdomain(validTLD=True))
     print (c.validdomain(extended=True))
@@ -285,3 +298,7 @@ if __name__ == "__main__":
     print (c.include(expression=r'\.lu$'))
     print ("Exclude dot.lu:")
     print (c.exclude(expression=r'\.lu$'))
+    c.text(rawtext="www.lwn.net www.undeadly.org")
+    print (c.potentialdomain(validTLD=True))
+    c.validdomain()
+    print (c.localizedomain(cc='US'))
