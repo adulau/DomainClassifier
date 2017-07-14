@@ -82,7 +82,9 @@ class Extract:
 
     def __updatelisttld(self):
         ianatldlist = "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"
-        tlds = urllib2.urlopen(ianatldlist, ianatldlist).read()
+        req = urllib2.Request(ianatldlist)
+        req.add_header('User-Agent', 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0')
+        tlds = urllib2.urlopen(req).read()
         tlds = tlds.split("\n")
         for tld in tlds:
             self.listtld.append(tld.lower())
