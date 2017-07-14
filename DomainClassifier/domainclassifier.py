@@ -11,9 +11,9 @@ import socket
 import urllib2
 
 __author__ = "Alexandre Dulaunoy"
-__copyright__ = "Copyright 2012-2014, Alexandre Dulaunoy"
+__copyright__ = "Copyright 2012-2017, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.5"
+__version__ = "0.6"
 
 
 class Extract:
