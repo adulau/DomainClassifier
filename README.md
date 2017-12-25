@@ -93,6 +93,10 @@ Exclude dot.lu:
 * dnspython library - http://www.dnspython.org/
 * IPy library
 
+### Software using DomainClassifier
+
+* [AIL framework - Analysis Information Leak framework][https://github.com/CIRCL/AIL-framework]
+
 ### License
 
 Copyright (C) 2012-2014 Alexandre Dulaunoy - a(at)foo.be
