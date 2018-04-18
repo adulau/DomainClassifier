@@ -27,7 +27,7 @@ class Extract:
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = nameservers
         self.presolver.lifetime = 1.0
-        self.bgprankingserver = 'pdns.circl.lu' #'bgpranking.circl.lu'
+        self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
         self.listtld = []
         self.domain = self.potentialdomain()
