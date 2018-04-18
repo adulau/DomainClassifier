@@ -8,7 +8,14 @@ import re
 import dns.resolver
 import IPy
 import socket
-import urllib2
+
+try:
+    #python 3
+    import urllib.request as urllib
+except:
+    #python 2
+    import urllib2 as urllib
+
 
 __author__ = "Alexandre Dulaunoy"
 __copyright__ = "Copyright 2012-2017, Alexandre Dulaunoy"
@@ -49,7 +56,7 @@ class Extract:
         if a:
             x = str(a[0]).split("|")
             # why so many spaces?
-            x = map(lambda t: t.replace("\"", "").strip(), x)
+            x = list( map(lambda t: t.replace("\"", "").strip(), x) )
             return (x[0], x[2], a[0])
         else:
             return None
@@ -82,9 +89,9 @@ class Extract:
 
     def __updatelisttld(self):
         ianatldlist = "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"
-        req = urllib2.Request(ianatldlist)
+        req = urllib.Request(ianatldlist)
         req.add_header('User-Agent', 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0')
-        tlds = urllib2.urlopen(req).read()
+        tlds = ( urllib.urlopen(req).read() ).decode('utf8')
         tlds = tlds.split("\n")
         for tld in tlds:
             self.listtld.append(tld.lower())
@@ -274,7 +281,6 @@ class Extract:
         for dom in domains:
             if type(dom) == tuple:
                 dom = dom[0]
-
             if includefilter.search(dom):
                     self.cleandomain.append(dom)
 
