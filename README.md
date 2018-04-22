@@ -89,17 +89,17 @@ Exclude dot.lu:
 
 ### Software Required
 
-* Python (tested successfully on version 2.6)
+* Python (tested successfully on version 2.6, 2.7 and 3.5)
 * dnspython library - http://www.dnspython.org/
 * IPy library
 
 ### Software using DomainClassifier
 
-* [AIL framework - Analysis Information Leak framework][https://github.com/CIRCL/AIL-framework]
+* [AIL framework - Analysis Information Leak framework](https://github.com/CIRCL/AIL-framework)
 
 ### License
 
-Copyright (C) 2012-2014 Alexandre Dulaunoy - a(at)foo.be
+Copyright (C) 2012-2018 Alexandre Dulaunoy - a(at)foo.be
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
