@@ -8,6 +8,7 @@ import re
 import dns.resolver
 import IPy
 import socket
+from datetime import date, timedelta
 
 try:
     #python 3
@@ -16,11 +17,14 @@ except:
     #python 2
     import urllib2 as urllib
 
-
+try:
+   from pybgpranking import BGPRanking
+except:
+    print ("pybgpranking is not installed - ranking of ASN values won't be possible")
 __author__ = "Alexandre Dulaunoy"
-__copyright__ = "Copyright 2012-2017, Alexandre Dulaunoy"
+__copyright__ = "Copyright 2012-2019, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.6"
+__version__ = "0.7"
 
 
 class Extract:
@@ -64,28 +68,9 @@ class Extract:
     """
     def __bgpranking(self, asn=None):
         if asn:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect((self.bgprankingserver, 43))
-            s.send(asn+"\r\n")
-            r = ''
-            while True:
-                d = s.recv(2048)
-                r = r + d
-                if d == '':
-                    break
-            s.close()
-            if len(r) > 0:
-                try:
-                    rr = r.split("\n")[1].split(",")
-                except IndexError:
-                    return None
-                if len(rr) > 1:
-                    rank = rr[1]
-                    return float(rank)
-                else:
-                    return None
-            else:
-                return None
+            bgpranking = BGPRanking()
+            value = bgpranking.query(asn, date=(date.today() - timedelta(1)).isoformat())
+            return value['response']['ranking']['rank']
 
     def __updatelisttld(self):
         ianatldlist = "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"
