@@ -24,7 +24,7 @@ except:
 __author__ = "Alexandre Dulaunoy"
 __copyright__ = "Copyright 2012-2019, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.7"
+__version__ = "0.8"
 
 
 class Extract:
