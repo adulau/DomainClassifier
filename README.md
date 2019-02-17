@@ -1,11 +1,9 @@
 DomainClassifier
 ================
 
-DomainClassifier is a simple Python library to extract and classify Internet
-domains/hostnames/IP addresses from raw text files following their existence,
-localization or attributes.
+DomainClassifier is a simple Python library to extract and classify Internet domains/hostnames/IP addresses from raw unstructured text files following their existence, localization or attributes.
 
-DomainClassifier can be used to extract Internet hosts from any free texts.
+DomainClassifier can be used to extract Internet hosts from any free texts or collected unstructured information.
 
 ![An overview of the DomainClassifier methods](https://raw.github.com/adulau/DomainClassifier/master/doc/domainclassifier-flow.png)
 
@@ -92,6 +90,7 @@ Exclude dot.lu:
 * Python (tested successfully on version 2.6, 2.7 and 3.5)
 * dnspython library - http://www.dnspython.org/
 * IPy library
+* [pybgpranking](https://github.com/D4-project/BGP-Ranking/tree/master/client) to get malicious ranking of BGP AS number via [BGP Ranking](https://github.com/D4-project/BGP-Ranking)
 
 ### Software using DomainClassifier
 
@@ -99,7 +98,7 @@ Exclude dot.lu:
 
 ### License
 
-Copyright (C) 2012-2018 Alexandre Dulaunoy - a(at)foo.be
+Copyright (C) 2012-2019 Alexandre Dulaunoy - a(at)foo.be
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
