@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 setup(
     name="DomainClassifier",
-    version="0.8",
+    version="1.0",
     packages=find_packages(),
     install_requires=['dnspython', 'IPy', 'pybgpranking'],
     dependency_links=[
