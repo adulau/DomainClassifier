@@ -25,8 +25,6 @@ Out[12]: ['www.google.com', 'foo.bar']
 How To Use It
 -------------
 
-[![asciicast](https://asciinema.org/a/c039VES8Ksi9pWbii5F8FqeA6.svg)](https://asciinema.org/a/c039VES8Ksi9pWbii5F8FqeA6)
-
 
 ```python
 import DomainClassifier.domainclassifier
