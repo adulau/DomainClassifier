@@ -3,7 +3,7 @@ DomainClassifier
 
 DomainClassifier is a simple Python library to extract and classify Internet domains/hostnames/IP addresses from raw unstructured text files following their existence, localization or attributes.
 
-DomainClassifier can be used to extract Internet hosts from any free texts or collected unstructured information.
+DomainClassifier can be used to extract Internet hosts from any free texts or collected unstructured information. A passive dns output is also available.
 
 ![An overview of the DomainClassifier methods](https://raw.github.com/adulau/DomainClassifier/master/doc/domainclassifier-flow.png)
 
