@@ -8,6 +8,7 @@ import re
 import dns.resolver
 import IPy
 import socket
+import time
 from datetime import date, timedelta
 
 try:
@@ -22,9 +23,9 @@ try:
 except:
     print ("pybgpranking is not installed - ranking of ASN values won't be possible")
 __author__ = "Alexandre Dulaunoy"
-__copyright__ = "Copyright 2012-2019, Alexandre Dulaunoy"
+__copyright__ = "Copyright 2012-2021, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.8"
+__version__ = "0.9"
 
 
 class Extract:
@@ -122,7 +123,7 @@ class Extract:
     returns a list of existing domain. If the extended flag is true, a set is
     return with the associated DNS resources found."""
 
-    def validdomain(self, rtype=['A', 'AAAA', 'SOA', 'MX', 'CNAME'], extended=True):
+    def validdomain(self, rtype=['A', 'AAAA', 'SOA', 'MX', 'CNAME'], extended=True, passive_dns=False):
         if extended is False:
             self.vdomain = set()
         else:
@@ -135,11 +136,18 @@ class Extract:
                 except:
                     pass
                 else:
-                    self.vdomain.append(domain)
-                    if extended is False:
-                        self.vdomain.add((domain))
-                    else:
+                    # Pasive DNS output
+                    # timestamp||dns-client ||dns-server||RR class||Query||Query Type||Answer||TTL||Count
+                    if passive_dns:
+                        rrset = answers.rrset.to_text().splitlines()
+                        for dns_resp in rrset:
+                            dns_resp = dns_resp.split()
+                            passive_dns_out = '{}||127.0.0.1||{}||{}||{}||{}||{}||{}||1\n'.format(time.time(), self.presolver.nameservers[0], dns_resp[2], domain, dnstype, dns_resp[4], answers.ttl)
+                            self.vdomain.add((passive_dns_out))
+                    elif extended:
                         self.vdomain.append((domain, dnstype, answers[0]))
+                    else:
+                        self.vdomain.add((domain))
         return self.vdomain
 
     """ipaddress method extracts from the domain list the valid IPv4 addresses"""
@@ -272,7 +280,7 @@ class Extract:
         return set(self.cleandomain)
 
 if __name__ == "__main__":
-    c = Extract(rawtext="www.foo.lu www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be http://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-broken-www.google.com www.google.lu trailing test www.facebook.com www.nic.ru www.youporn.com 8.8.8.8 201.1.1.1 abc.dontexist", nameservers=['127.0.0.1'])
+    c = Extract(rawtext="www.foo.lu www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be http://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-broken-www.google.com www.google.lu trailing test www.facebook.com www.nic.ru www.youporn.com 8.8.8.8 201.1.1.1 abc.dontexist")
     c.text(rawtext="www.abc.lu www.xxx.com random text a test bric broc www.lemonde.fr www.belnet.be www.foo.be")
     print (c.potentialdomain())
     print (c.potentialdomain(validTLD=True))
@@ -295,3 +303,4 @@ if __name__ == "__main__":
     print (c.potentialdomain(validTLD=True))
     c.validdomain()
     print (c.localizedomain(cc='US'))
+    print(c.validdomain(extended=False, passive_dns=True))

@@ -97,12 +97,12 @@ Exclude dot.lu:
 
 ### Software using DomainClassifier
 
-* [AIL framework - Analysis Information Leak framework](https://github.com/CIRCL/AIL-framework)
+* [AIL framework - Analysis Information Leak framework](https://github.com/ail-project/ail-framework)
 
 ### License
 
 ~~~~
-Copyright (C) 2012-2019 Alexandre Dulaunoy - a(at)foo.be
+Copyright (C) 2012-2021 Alexandre Dulaunoy - a(at)foo.be
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
