@@ -34,10 +34,11 @@ class Extract:
     from a rawtext stream. When call, the rawtext parameter is a string
     containing the raw data to be process."""
 
-    def __init__(self, rawtext=None, nameservers=['8.8.8.8']):
+    def __init__(self, rawtext=None, nameservers=['8.8.8.8'], port= 53):
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = nameservers
+        self.presolver.port = 53
         self.presolver.lifetime = 1.0
         self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
