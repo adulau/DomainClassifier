@@ -38,7 +38,7 @@ class Extract:
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = nameservers
-        self.presolver.port = 53
+        self.presolver.port = port
         self.presolver.lifetime = 1.0
         self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
