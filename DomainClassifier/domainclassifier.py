@@ -10,6 +10,7 @@ import IPy
 import socket
 import time
 from datetime import date, timedelta
+import os
 
 try:
     # python 3
@@ -82,14 +83,28 @@ class Extract:
             )
             return value['response']['ranking']['rank']
 
-    def __updatelisttld(self):
+    def __updatelisttld(self, force=False):
         ianatldlist = "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"
-        req = urllib.Request(ianatldlist)
-        req.add_header(
-            'User-Agent',
-            'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
-        )
-        tlds = (urllib.urlopen(req).read()).decode('utf8')
+        userdir = os.path.expanduser("~")
+        cachedir = os.path.join(userdir, ".DomainClassifier")
+        if not os.path.exists(cachedir):
+            os.mkdir(cachedir)
+        tldcache = os.path.join(cachedir, "tlds")
+        if not os.path.exists(tldcache):
+            print(tldcache)
+            req = urllib.Request(ianatldlist)
+            req.add_header(
+                'User-Agent',
+                'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
+            )
+            tlds = (urllib.urlopen(req).read()).decode('utf8')
+            f = open(tldcache, "wb")
+            f.write(tlds.encode("utf-8"))
+            f.close()
+
+        f = open(tldcache, "r")
+        tlds = f.read()
+        f.close()
         tlds = tlds.split("\n")
         for tld in tlds:
             self.listtld.append(tld.lower())
