@@ -95,7 +95,7 @@ class Extract:
             req = urllib.Request(ianatldlist)
             req.add_header(
                 'User-Agent',
-                'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:54.0) Gecko/20100101 Firefox/54.0',
+                'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0',
             )
             tlds = (urllib.urlopen(req).read()).decode('utf8')
             f = open(tldcache, "wb")
