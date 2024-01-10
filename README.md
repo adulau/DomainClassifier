@@ -34,32 +34,32 @@ tp://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-b
 8 201.1.1.1")
 
 # extracting potentially valid domains from rawtext
-print c.potentialdomain()
+print(c.potentialdomain())
 
 # reduce set of potentially valid domains to existing domains
 # (based on SOA,A,AAAA,CNAME,MX records)
-print c.validdomain(extended=True)
+print(c.validdomain(extended=True))
 
 # reduce set of valid domains with DNS records associated to a
 # specified country
-print "US:"
-print c.localizedomain(cc='US')
-print "LU:"
-print c.localizedomain(cc='LU')
-print "BE:"
-print c.localizedomain(cc='BE')
-print "Ranking:"
-print c.rankdomain()
+print("US:")
+print(c.localizedomain(cc='US'))
+print("LU:")
+print(c.localizedomain(cc='LU'))
+print("BE:")
+print(c.localizedomain(cc='BE'))
+print("Ranking:")
+print(c.rankdomain())
 
 # extract valid IPv4 addresses (using the potential list of valid domains)
-print "List of ip addresses:"
-print c.ipaddress(extended=True)
+print("List of ip addresses:")
+print(c.ipaddress(extended=True))
 
 # some more filtering
-print "Include dot.lu:"
-print c.include(expression=r'\.lu$')
-print "Exclude dot.lu:"
-print c.exclude(expression=r'\.lu$')
+print("Include dot.lu:")
+print(c.include(expression=r'\.lu$'))
+print("Exclude dot.lu:")
+print(c.exclude(expression=r'\.lu$'))
 ```
 
 ### Sample output
@@ -100,7 +100,7 @@ Exclude dot.lu:
 ### License
 
 ~~~~
-Copyright (C) 2012-2021 Alexandre Dulaunoy - a(at)foo.be
+Copyright (C) 2012-2023 Alexandre Dulaunoy - a(at)foo.be
 Copyright (C) 2021 Aurelien Thirion
 
 This program is free software: you can redistribute it and/or modify
