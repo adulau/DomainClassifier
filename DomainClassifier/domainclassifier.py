@@ -7,10 +7,15 @@ attributes.
 import re
 import dns.resolver
 import IPy
+import redis
 import socket
 import time
 from datetime import date, timedelta
 import os
+import sys
+from uuid import uuid4
+
+from multiprocessing import Process as Proc
 
 try:
     # python 3
@@ -24,9 +29,9 @@ try:
 except:
     print("pybgpranking is not installed - ranking of ASN values won't be possible")
 __author__ = "Alexandre Dulaunoy"
-__copyright__ = "Copyright 2012-2021, Alexandre Dulaunoy"
+__copyright__ = "Copyright 2012-2024, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
-__version__ = "0.9"
+__version__ = "1.1"
 
 
 class Extract:
@@ -35,7 +40,7 @@ class Extract:
     from a rawtext stream. When call, the rawtext parameter is a string
     containing the raw data to be process."""
 
-    def __init__(self, rawtext=None, nameservers=['8.8.8.8'], port=53):
+    def __init__(self, rawtext=None, nameservers=['8.8.8.8'], port=53, redis_host='', redis_port=6379, redis_db=0, expire_time=3600, re_timeout=-1):
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
         self.presolver.nameservers = nameservers
@@ -44,6 +49,17 @@ class Extract:
         self.bgprankingserver = 'pdns.circl.lu'
         self.vdomain = []
         self.listtld = []
+
+        self.re_domain = re.compile(r'\b([a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})+)\b')
+
+        if redis_host and redis_port:
+            self.redis = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+            self.uuid = str(uuid4())
+            self.re_timeout = re_timeout
+        else:
+            self.redis = None
+        self.expire_time = expire_time
+
         self.domain = self.potentialdomain()
 
     """__origin is a private function to the ASN lookup for an IP address via
@@ -123,7 +139,32 @@ class Extract:
 
         return self.cleandomain
 
-    def text(self, rawtext=False):
+    def __re_findall(self, rawtext):
+        for x in re.findall(self.re_domain, rawtext):
+            if x[0]:
+                self.redis.sadd('cache:regex:{}'.format(self.uuid), x[0])
+        self.redis.expire('cache:regex:{}'.format(self.uuid), 360)
+
+    def __regex_findall(self, rawtext, timeout):
+        proc = Proc(target=self.__re_findall, args=(rawtext,))
+        try:
+            proc.start()
+            proc.join(timeout)
+            if proc.is_alive():
+                proc.terminate()
+                print('regex: processing timeout')
+                return []
+            else:
+                domains = self.redis.smembers('cache:regex:{}'.format(self.uuid))
+                self.redis.delete('cache:regex:{}'.format(self.uuid))
+                proc.terminate()
+                return domains
+        except KeyboardInterrupt:
+            print("Caught KeyboardInterrupt, terminating workers")
+            proc.terminate()
+            sys.exit(0)
+
+    def text(self, rawtext=''):
         if rawtext:
             self.rawtext = rawtext
             self.domain = self.potentialdomain()
@@ -132,16 +173,19 @@ class Extract:
         return False
 
     """potentialdomain method extracts potential domains matching any
-    string that is a serie of string with maximun 63 character separated by a
+    string that is a serie of string with maximum 63 character separated by a
     dot. The method used the rawtext defined at the instantiation of the class.
     This return a list of a potential domain."""
 
     def potentialdomain(self, validTLD=True):
         self.domain = []
-        domain = re.compile(r'\b([a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})+)\b')
-        for x in domain.findall(self.rawtext):
-            if x[0]:
-                self.domain.append(x[0])
+        if self.re_timeout > 0 and self.redis:
+            self.domain = list(self.__regex_findall(self.rawtext, self.re_timeout))
+        else:
+            domains = self.re_domain.findall(self.rawtext)
+            for x in domains:
+                if x[0]:
+                    self.domain.append(x[0])
         if validTLD:
             self.domain = self.__listtld()
         return self.domain
@@ -164,34 +208,54 @@ class Extract:
             self.vdomain = []
 
         for domain in self.domain:
-            for dnstype in rtype:
-                try:
-                    answers = self.presolver.query(domain, dnstype)
-                except:
-                    pass
-                else:
-                    # Pasive DNS output
-                    # timestamp||dns-client ||dns-server||RR class||Query||Query Type||Answer||TTL||Count
-                    if passive_dns:
-                        rrset = answers.rrset.to_text().splitlines()
-                        for dns_resp in rrset:
-                            dns_resp = dns_resp.split()
-                            passive_dns_out = (
-                                '{}||127.0.0.1||{}||{}||{}||{}||{}||{}||1\n'.format(
-                                    time.time(),
-                                    self.presolver.nameservers[0],
-                                    dns_resp[2],
-                                    domain,
-                                    dnstype,
-                                    dns_resp[4],
-                                    answers.ttl,
-                                )
-                            )
-                            self.vdomain.add((passive_dns_out))
-                    elif extended:
-                        self.vdomain.append((domain, dnstype, answers[0]))
+            if self.redis:
+                if self.redis.exists('dom_class:cache:{}'.format(domain)):
+                    passive_dns_out = self.redis.smembers('dom_class:cache:{}'.format(domain))
+                    for out in passive_dns_out:
+                        if extended:
+                            out = tuple(out.split('[^]', 2))
+                            self.vdomain.append(out)
+                        else:
+                            self.vdomain.add(out)
+            else:
+
+                for dnstype in rtype:
+                    try:
+                        answers = self.presolver.query(domain, dnstype)
+                    except:
+                        pass
                     else:
-                        self.vdomain.add((domain))
+                        # Passive DNS output
+                        # timestamp||dns-client ||dns-server||RR class||Query||Query Type||Answer||TTL||Count
+                        if passive_dns:
+                            rrset = answers.rrset.to_text().splitlines()
+                            for dns_resp in rrset:
+                                dns_resp = dns_resp.split()
+                                passive_dns_out = (
+                                    '{}||127.0.0.1||{}||{}||{}||{}||{}||{}||1\n'.format(
+                                        time.time(),
+                                        self.presolver.nameservers[0],
+                                        dns_resp[2],
+                                        domain,
+                                        dnstype,
+                                        dns_resp[4],
+                                        answers.ttl,
+                                    )
+                                )
+                                self.vdomain.add((passive_dns_out))
+                                if self.redis:
+                                    self.redis.sadd('dom_class:cache:{}'.format(domain), passive_dns_out)
+                                    self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
+                        elif extended:
+                            self.vdomain.append((domain, dnstype, answers[0]))
+                            if self.redis:
+                                self.redis.sadd('dom_class:cache:{}'.format(domain), '{}[^]{}[^]{}'.format(domain, dnstype, answers[0]))
+                                self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
+                        else:
+                            self.vdomain.add((domain))
+                            if self.redis:
+                                self.redis.sadd('dom_class:cache:{}'.format(domain), domain)
+                                self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
         return self.vdomain
 
     """ipaddress method extracts from the domain list the valid IPv4 addresses"""

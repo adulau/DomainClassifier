@@ -1,3 +1,4 @@
 IPy
 dnspython
 git+https://github.com/D4-project/BGP-Ranking.git/#egg=pybgpranking&subdirectory=client
+redis
