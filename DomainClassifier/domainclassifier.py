@@ -217,45 +217,45 @@ class Extract:
                             self.vdomain.append(out)
                         else:
                             self.vdomain.add(out)
-            else:
+                    continue
 
-                for dnstype in rtype:
-                    try:
-                        answers = self.presolver.query(domain, dnstype)
-                    except:
-                        pass
-                    else:
-                        # Passive DNS output
-                        # timestamp||dns-client ||dns-server||RR class||Query||Query Type||Answer||TTL||Count
-                        if passive_dns:
-                            rrset = answers.rrset.to_text().splitlines()
-                            for dns_resp in rrset:
-                                dns_resp = dns_resp.split()
-                                passive_dns_out = (
-                                    '{}||127.0.0.1||{}||{}||{}||{}||{}||{}||1\n'.format(
-                                        time.time(),
-                                        self.presolver.nameservers[0],
-                                        dns_resp[2],
-                                        domain,
-                                        dnstype,
-                                        dns_resp[4],
-                                        answers.ttl,
-                                    )
+            for dnstype in rtype:
+                try:
+                    answers = self.presolver.query(domain, dnstype)
+                except:
+                    pass
+                else:
+                    # Passive DNS output
+                    # timestamp||dns-client ||dns-server||RR class||Query||Query Type||Answer||TTL||Count
+                    if passive_dns:
+                        rrset = answers.rrset.to_text().splitlines()
+                        for dns_resp in rrset:
+                            dns_resp = dns_resp.split()
+                            passive_dns_out = (
+                                '{}||127.0.0.1||{}||{}||{}||{}||{}||{}||1\n'.format(
+                                    time.time(),
+                                    self.presolver.nameservers[0],
+                                    dns_resp[2],
+                                    domain,
+                                    dnstype,
+                                    dns_resp[4],
+                                    answers.ttl,
                                 )
-                                self.vdomain.add((passive_dns_out))
-                                if self.redis:
-                                    self.redis.sadd('dom_class:cache:{}'.format(domain), passive_dns_out)
-                                    self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
-                        elif extended:
-                            self.vdomain.append((domain, dnstype, answers[0]))
+                            )
+                            self.vdomain.add((passive_dns_out))
                             if self.redis:
-                                self.redis.sadd('dom_class:cache:{}'.format(domain), '{}[^]{}[^]{}'.format(domain, dnstype, answers[0]))
+                                self.redis.sadd('dom_class:cache:{}'.format(domain), passive_dns_out)
                                 self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
-                        else:
-                            self.vdomain.add((domain))
-                            if self.redis:
-                                self.redis.sadd('dom_class:cache:{}'.format(domain), domain)
-                                self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
+                    elif extended:
+                        self.vdomain.append((domain, dnstype, answers[0]))
+                        if self.redis:
+                            self.redis.sadd('dom_class:cache:{}'.format(domain), '{}[^]{}[^]{}'.format(domain, dnstype, answers[0]))
+                            self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
+                    else:
+                        self.vdomain.add((domain))
+                        if self.redis:
+                            self.redis.sadd('dom_class:cache:{}'.format(domain), domain)
+                            self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
         return self.vdomain
 
     """ipaddress method extracts from the domain list the valid IPv4 addresses"""
