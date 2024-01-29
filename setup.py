@@ -5,7 +5,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="DomainClassifier",
-    version="1.3",
+    version="1.4",
     packages=find_packages(),
     install_requires=['dnspython', 'IPy', 'pybgpranking'],
     author="Alexandre Dulaunoy",
