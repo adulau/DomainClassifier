@@ -123,7 +123,8 @@ class Extract:
         f.close()
         tlds = tlds.split("\n")
         for tld in tlds:
-            self.listtld.append(tld.lower())
+            if tld:
+                self.listtld.append(tld.lower())
 
     def __listtld(self):
         if not self.listtld:
