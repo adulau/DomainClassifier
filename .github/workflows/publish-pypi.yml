@@ -1,0 +1,61 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Build and check distributions
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python -m pip install build twine
+          python -m build
+          python -m twine check --strict dist/*
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          from packaging.utils import parse_wheel_filename
+          from packaging.version import Version
+
+          (wheel,) = Path('dist').glob('*.whl')
+          _, package_version, _, _ = parse_wheel_filename(wheel.name)
+          release_tag = os.environ['RELEASE_TAG']
+          if package_version != Version(release_tag):
+              raise SystemExit(
+                  f'Release tag {release_tag!r} does not match package version {package_version}'
+              )
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/DomainClassifier/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: python-distributions
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@aef6c9b6e301dc803e1bc9133e9ce67ae9b0906b # v1.14.3
