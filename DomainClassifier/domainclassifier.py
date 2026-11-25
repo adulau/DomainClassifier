@@ -34,6 +34,14 @@ __license__ = "AGPL version 3"
 __version__ = "1.1"
 
 
+def _store_regex_domains(pattern, rawtext, redis_options, cache_key):
+    with redis.StrictRedis(**redis_options) as client:
+        for match in pattern.findall(rawtext):
+            if match[0]:
+                client.sadd(cache_key, match[0])
+        client.expire(cache_key, 360)
+
+
 class Extract:
 
     """DomainClassifier Extract class is the base class for extracting domains
@@ -52,10 +60,11 @@ class Extract:
 
         self.re_domain = re.compile(r'\b([a-zA-Z\d-]{,63}(\.[a-zA-Z\d-]{,63})+)\b')
 
+        self.re_timeout = re_timeout
         if redis_host and redis_port:
-            self.redis = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+            self._redis_options = dict(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+            self.redis = redis.StrictRedis(**self._redis_options)
             self.uuid = str(uuid4())
-            self.re_timeout = re_timeout
         else:
             self.redis = None
         self.expire_time = expire_time
@@ -140,30 +149,26 @@ class Extract:
 
         return self.cleandomain
 
-    def __re_findall(self, rawtext):
-        for x in re.findall(self.re_domain, rawtext):
-            if x[0]:
-                self.redis.sadd('cache:regex:{}'.format(self.uuid), x[0])
-        self.redis.expire('cache:regex:{}'.format(self.uuid), 360)
-
     def __regex_findall(self, rawtext, timeout):
-        proc = Proc(target=self.__re_findall, args=(rawtext,))
+        cache_key = 'cache:regex:{}'.format(self.uuid)
+        # Spawn and forkserver require a picklable target and arguments.
+        proc = Proc(target=_store_regex_domains, args=(self.re_domain, rawtext, self._redis_options, cache_key))
+        proc.start()
         try:
-            proc.start()
             proc.join(timeout)
             if proc.is_alive():
-                proc.terminate()
                 print('regex: processing timeout')
                 return []
-            else:
-                domains = self.redis.smembers('cache:regex:{}'.format(self.uuid))
-                self.redis.delete('cache:regex:{}'.format(self.uuid))
-                proc.terminate()
-                return domains
+            return self.redis.smembers(cache_key)
         except KeyboardInterrupt:
             print("Caught KeyboardInterrupt, terminating workers")
-            proc.terminate()
             sys.exit(0)
+        finally:
+            if proc.is_alive():
+                proc.terminate()
+                proc.join()
+            proc.close()
+            self.redis.delete(cache_key)
 
     def text(self, rawtext=''):
         if rawtext:
