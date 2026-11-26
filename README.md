@@ -1,103 +1,78 @@
-DomainClassifier
-================
+# DomainClassifier
 
-DomainClassifier is a simple Python library to extract and classify Internet domains/hostnames/IP addresses from raw unstructured text files following their existence, localization or attributes.
+DomainClassifier extracts hostnames from unstructured text. It can validate them
+against DNS, resolve IPv4 addresses, filter by country or regular expression,
+and rank domains using BGP data. It can also emit passive DNS records.
 
-DomainClassifier can be used to extract Internet hosts from any free texts or collected unstructured information. A passive dns output is also available.
-
-![An overview of the DomainClassifier methods](https://raw.github.com/adulau/DomainClassifier/master/doc/domainclassifier-flow.png)
-
-Install
--------
-
-[DomainClassifier](https://pypi.python.org/pypi/DomainClassifier/) is part of the pypi package. It can be installed using the pip command:
-
-`pip install DomainClassifier`
-
-```python
-
-In [11]: c = DomainClassifier.domainclassifier.Extract(rawtext="www.google.com foo.bar ppp.ppp")
-
-In [12]: c.potentialdomain()
-Out[12]: ['www.google.com', 'foo.bar']
+```mermaid
+flowchart TD
+    text["Raw text"] --> extract["potentialdomain()<br/>Extract candidate domains"]
+    extract --> dns["validdomain()<br/>Look up DNS records"]
+    extract --> ip["ipaddress()<br/>Resolve IPv4 addresses"]
+    extract --> filter["include() / exclude()<br/>Filter domain names"]
+    dns --> filter
+    dns --> country["localizedomain()<br/>Filter by country"]
+    dns --> rank["rankdomain()<br/>Rank by BGP ASN"]
 ```
 
-How To Use It
--------------
+## Installation
 
+From a checkout of this repository, install the dependencies in a Python virtual
+environment and run the examples from the checkout root.
 
-```python
-import DomainClassifier.domainclassifier
-
-c = DomainClassifier.domainclassifier.Extract( rawtext = "www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be ht
-tp://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-broken-www.google.com www.google.lu trailing test www.facebook.com www.nic.ru www.youporn.com 8.8.8.
-8 201.1.1.1")
-
-# extracting potentially valid domains from rawtext
-print(c.potentialdomain())
-
-# reduce set of potentially valid domains to existing domains
-# (based on SOA,A,AAAA,CNAME,MX records)
-print(c.validdomain(extended=True))
-
-# reduce set of valid domains with DNS records associated to a
-# specified country
-print("US:")
-print(c.localizedomain(cc='US'))
-print("LU:")
-print(c.localizedomain(cc='LU'))
-print("BE:")
-print(c.localizedomain(cc='BE'))
-print("Ranking:")
-print(c.rankdomain())
-
-# extract valid IPv4 addresses (using the potential list of valid domains)
-print("List of ip addresses:")
-print(c.ipaddress(extended=True))
-
-# some more filtering
-print("Include dot.lu:")
-print(c.include(expression=r'\.lu$'))
-print("Exclude dot.lu:")
-print(c.exclude(expression=r'\.lu$'))
+```sh
+python -m pip install dnspython IPy redis
 ```
 
-### Sample output
+The latest PyPI release depends on `pybgpranking`, which is currently unavailable
+from PyPI. The source checkout works with the dependencies above for extraction
+and DNS. [DomainClassifier on PyPI](https://pypi.org/project/DomainClassifier/)
 
-```python
-['www.xxx.com', 'foo.lu', 'abc.lu', 'a.b.c.d.e', '1.2.3.4', 'foo.be', 'www.belnet.be', 'www.cert.be', 'www.public.lu', 'www.allo.lu', 'www.eurodns.com', 'something-broken-www.google.com', 'www.google.lu', 'www.facebook.com', 'www.nic.ru', 'www.youporn.com', '8.8.8.8', '201.1.1.1']
-[('www.xxx.com', 'A', <DNS IN A rdata: 67.23.112.226>), ('abc.lu', 'SOA', <DNS IN SOA rdata: neptun.vo.lu. Administrator.vo.lu. 2006063001 86400 7200 2419200 3600>), ('abc.lu', 'MX', <DNS IN MX rdata: 10 proteus.vo.lu.>), ('foo.be', 'A', <DNS IN A rdata: 188.65.217.78>), ('foo.be', 'AAAA', <DNS IN AAAA rdata: 2001:6f8:202:2df::2>), ('foo.be', 'SOA', <DNS IN SOA rdata: ka.quuxlabs.com. adulau.foo.be. 2010121901 21600 3600 604800 86400>), ('foo.be', 'MX', <DNS IN MX rdata: 10 mail.foo.be.>), ('www.belnet.be', 'A', <DNS IN A rdata: 193.190.130.15>), ('www.belnet.be', 'AAAA', <DNS IN AAAA rdata: 2001:6a8:3c80:8300::15>), ('www.belnet.be', 'CNAME', <DNS IN CNAME rdata: fiorano.belnet.be.>), ('www.cert.be', 'A', <DNS IN A rdata: 193.190.198.61>), ('www.cert.be', 'AAAA', <DNS IN AAAA rdata: 2001:6a8:3c80::61>), ('www.cert.be', 'SOA', <DNS IN SOA rdata: ns.belnet.be. hostmaster.belnet.be. 2013053039 360 180 1209600 3600>), ('www.cert.be', 'MX', <DNS IN MX rdata: 10 asp-mxa.belnet.be.>), ('www.cert.be', 'CNAME', <DNS IN CNAME rdata: cert.be.>), ('www.public.lu', 'A', <DNS IN A rdata: 194.154.200.74>), ('www.allo.lu', 'A', <DNS IN A rdata: 80.90.47.69>), ('www.eurodns.com', 'A', <DNS IN A rdata: 80.92.65.165>), ('www.google.lu', 'A', <DNS IN A rdata: 173.194.66.94>), ('www.google.lu', 'AAAA', <DNS IN AAAA rdata: 2a00:1450:400c:c03::5e>), ('www.facebook.com', 'A', <DNS IN A rdata: 31.13.64.1>), ('www.facebook.com', 'AAAA', <DNS IN AAAA rdata: 2a03:2880:10:8f07:face:b00c::1>), ('www.facebook.com', 'MX', <DNS IN MX rdata: 10 msgin.t.facebook.com.>), ('www.facebook.com', 'CNAME', <DNS IN CNAME rdata: star.c10r.facebook.com.>), ('www.nic.ru', 'A', <DNS IN A rdata: 194.85.61.42>), ('www.nic.ru', 'MX', <DNS IN MX rdata: 0 nomail.nic.ru.>), ('www.youporn.com', 'A', <DNS IN A rdata: 31.192.116.24>), ('www.youporn.com', 'SOA', <DNS IN SOA rdata: pdns1.ultradns.net. dns.manwin.com. 2012041840 86400 86400 86400 86400>), ('www.youporn.com', 'MX', <DNS IN MX rdata: 20 smtp-scan01.mx.reflected.net.>), ('www.youporn.com', 'CNAME', <DNS IN CNAME rdata: youporn.com.>)]
-US:
-[('www.xxx.com', 'A', <DNS IN A rdata: 67.23.112.226>), ('www.google.lu', 'A', <DNS IN A rdata: 173.194.66.94>)]
-LU:
-[('www.public.lu', 'A', <DNS IN A rdata: 194.154.200.74>), ('www.allo.lu', 'A', <DNS IN A rdata: 80.90.47.69>), ('www.eurodns.com', 'A', <DNS IN A rdata: 80.92.65.165>)]
-BE:
-[('foo.be', 'A', <DNS IN A rdata: 188.65.217.78>), ('www.belnet.be', 'A', <DNS IN A rdata: 193.190.130.15>), ('www.belnet.be', 'CNAME', <DNS IN CNAME rdata: fiorano.belnet.be.>), ('www.cert.be', 'A', <DNS IN A rdata: 193.190.198.61>), ('www.cert.be', 'CNAME', <DNS IN CNAME rdata: cert.be.>)]
-Ranking:
-[(1.0, 'www.youporn.com'), (1.0, 'www.youporn.com'), (1.0000120563271599, 'www.belnet.be'), (1.0000120563271599, 'www.belnet.be'), (1.0000120563271599, 'www.cert.be'), (1.0000120563271599, 'www.cert.be'), (1.0000372023809501, 'foo.be'), (1.0001395089285701, 'www.public.lu'), (1.00015419407895, 'www.allo.lu'), (1.0003662109375, 'www.eurodns.com'), (1.0004111842105301, 'www.xxx.com'), (1.0005944293478299, 'www.nic.ru'), (1.0024646577381, 'www.facebook.com'), (1.0024646577381, 'www.facebook.com'), (1.002635288165, 'www.google.lu')]
-List of ip addresses:
-('15169', 'AU', <DNS IN TXT rdata: "15169 | 1.2.3.0/24 | AU | apnic | 2011-08-11">)
-('15169', 'US', <DNS IN TXT rdata: "15169 | 8.8.8.0/24 | US | arin | 1992-12-01">)
-('27699', 'BR', <DNS IN TXT rdata: "27699 | 201.1.0.0/17 | BR | lacnic | 2003-12-08">)
-set([('201.1.1.1', '(\'27699\', \'BR\', <DNS IN TXT rdata: "27699 | 201.1.0.0/17 | BR | lacnic | 2003-12-08">)'), ('8.8.8.8', '(\'15169\', \'US\', <DNS IN TXT rdata: "15169 | 8.8.8.0/24 | US | arin | 1992-12-01">)'), ('1.2.3.4', '(\'15169\', \'AU\', <DNS IN TXT rdata: "15169 | 1.2.3.0/24 | AU | apnic | 2011-08-11">)')])
-Include dot.lu:
-['abc.lu', 'abc.lu', 'www.public.lu', 'www.allo.lu', 'www.google.lu', 'www.google.lu']
-Exclude dot.lu:
-['www.xxx.com', 'foo.be', 'foo.be', 'foo.be', 'foo.be', 'www.belnet.be', 'www.belnet.be', 'www.belnet.be', 'www.cert.be', 'www.cert.be', 'www.cert.be', 'www.cert.be', 'www.cert.be', 'www.eurodns.com', 'www.facebook.com', 'www.facebook.com', 'www.facebook.com', 'www.facebook.com', 'www.nic.ru', 'www.nic.ru', 'www.youporn.com', 'www.youporn.com', 'www.youporn.com', 'www.youporn.com']
+Install the client from the pinned upstream revision to use BGP ranking.
+
+```sh
+python -m pip install 'pybgpranking @ git+https://github.com/D4-project/BGP-Ranking.git@aa7741710eadc608aeb1ae8bfac31a86c8207dd8#subdirectory=client'
 ```
 
-### Software Required
+## Quick start
 
-* Python (tested successfully on version 2.6, 2.7 and 3.5)
-* dnspython library - http://www.dnspython.org/
-* IPy library
-* [pybgpranking](https://github.com/D4-project/BGP-Ranking/tree/master/client) to get malicious ranking of BGP AS number via [BGP Ranking](https://github.com/D4-project/BGP-Ranking)
+```python
+from DomainClassifier.domainclassifier import Extract
 
-### Software using DomainClassifier
+classifier = Extract(rawtext="Visit example.com or email admin@example.org.")
+print(classifier.potentialdomain())  # ['example.com', 'example.org']
+print(classifier.include(r"\.org$"))  # {'example.org'}
+```
 
-* [AIL framework - Analysis Information Leak framework](https://github.com/ail-project/ail-framework)
+On first use, `Extract` fetches the IANA root zone TLD list and caches it at
+`~/.DomainClassifier/tlds`. By default, candidate domains must have a TLD from
+that list. Call `potentialdomain(validTLD=False)` to retrieve the unfiltered
+matches from the same text. [IANA TLD list](https://data.iana.org/TLD/tlds-alpha-by-domain.txt)
 
-### License
+### DNS and classification
+
+```python
+records = classifier.validdomain(rtype=["A", "AAAA"], extended=True)
+for hostname, record_type, answer in records:
+    print(hostname, record_type, answer)
+```
+
+- `Extract` accepts a `nameservers` list and a DNS `port`. The default resolver
+  is `8.8.8.8` on port 53.
+- After a lookup with `extended=True`, call `localizedomain(cc="US")` to filter
+  results by country or `rankdomain()` to rank them using the BGP client.
+  These lookups use external services.
+- Use `validdomain(extended=False, passive_dns=True)` for passive DNS output or
+  `ipaddress()` for IPv4 addresses.
+- `include()` and `exclude()` match against the DNS results when available and
+  against the candidate domains otherwise.
+- To enable optional Redis caching, pass `redis_host` to `Extract`.
+
+## Software using DomainClassifier
+
+- [AIL framework - Analysis Information Leak framework](https://github.com/ail-project/ail-framework)
+
+## License
 
 ~~~~
 Copyright (C) 2012-2023 Alexandre Dulaunoy - a(at)foo.be
