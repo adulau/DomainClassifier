@@ -24,7 +24,7 @@ try:
 except ImportError:
     print("pybgpranking is not installed - ranking of ASN values won't be possible")
 __author__ = "Alexandre Dulaunoy"
-__copyright__ = "Copyright 2012-2024, Alexandre Dulaunoy"
+__copyright__ = "Copyright 2012-2026, Alexandre Dulaunoy"
 __license__ = "AGPL version 3"
 __version__ = "1.1"
 
