@@ -75,8 +75,8 @@ for hostname, record_type, answer in records:
 ## License
 
 ~~~~
-Copyright (C) 2012-2023 Alexandre Dulaunoy - a(at)foo.be
-Copyright (C) 2021 Aurelien Thirion
+Copyright (C) 2012-2026 Alexandre Dulaunoy - a(at)foo.be
+Copyright (C) 2021-2026 Aurelien Thirion
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
