@@ -17,11 +17,11 @@ flowchart TD
 
 ## Installation
 
-From a checkout of this repository, install the dependencies in a Python virtual
-environment and run the examples from the checkout root.
+Use Python 3.7 or later. Install the dependencies in a virtual environment and
+run the examples from the checkout root.
 
 ```sh
-python -m pip install dnspython IPy redis
+python -m pip install 'dnspython>=2.0' IPy redis
 ```
 
 The latest PyPI release depends on `pybgpranking`, which is currently unavailable
