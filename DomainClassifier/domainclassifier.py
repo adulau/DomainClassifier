@@ -1,32 +1,27 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """DomainClassifier is a simple Python library to extract and classify Internet
 domains from raw text files following their existence, localization or
 attributes.
 """
 
 import re
+import socket
+import sys
+import time
+from datetime import date, timedelta
+from multiprocessing import Process
+from pathlib import Path
+from urllib.request import Request, urlopen
+from uuid import uuid4
+
+import dns.exception
 import dns.resolver
 import IPy
 import redis
-import socket
-import time
-from datetime import date, timedelta
-import os
-import sys
-from uuid import uuid4
-
-from multiprocessing import Process as Proc
-
-try:
-    # python 3
-    import urllib.request as urllib
-except:
-    # python 2
-    import urllib2 as urllib
 
 try:
     from pybgpranking import BGPRanking
-except:
+except ImportError:
     print("pybgpranking is not installed - ranking of ASN values won't be possible")
 __author__ = "Alexandre Dulaunoy"
 __copyright__ = "Copyright 2012-2024, Alexandre Dulaunoy"
@@ -43,15 +38,22 @@ def _store_regex_domains(pattern, rawtext, redis_options, cache_key):
 
 
 class Extract:
+    """Extract and classify domain names from raw text."""
 
-    """DomainClassifier Extract class is the base class for extracting domains
-    from a rawtext stream. When call, the rawtext parameter is a string
-    containing the raw data to be process."""
-
-    def __init__(self, rawtext=None, nameservers=['8.8.8.8'], port=53, redis_host='', redis_port=6379, redis_db=0, expire_time=3600, re_timeout=-1):
+    def __init__(
+        self,
+        rawtext=None,
+        nameservers=('8.8.8.8',),
+        port=53,
+        redis_host='',
+        redis_port=6379,
+        redis_db=0,
+        expire_time=3600,
+        re_timeout=-1,
+    ):
         self.rawtext = rawtext
         self.presolver = dns.resolver.Resolver()
-        self.presolver.nameservers = nameservers
+        self.presolver.nameservers = list(nameservers)
         self.presolver.port = port
         self.presolver.lifetime = 1.0
         self.bgprankingserver = 'pdns.circl.lu'
@@ -71,36 +73,31 @@ class Extract:
 
         self.domain = self.potentialdomain()
 
-    """__origin is a private function to the ASN lookup for an IP address via
-    the Team Cymru DNS interface. ipadd is a string contain the IP address in a
-    decimal form."""
-
     def __origin(self, ipaddr=None):
-
-        if ipaddr:
-            clook = (
-                IPy.IP(str(ipaddr))
-                .reverseName()
-                .replace('.in-addr.arpa.', '.origin.asn.cymru.com')
-            )
-            try:
-                a = self.presolver.query(clook, 'TXT')
-            except dns.resolver.NXDOMAIN:
-                return None
-            except dns.exception.Timeout:
-                return None
-        if a:
-            x = str(a[0]).split("|")
-            # why so many spaces?
-            x = list(map(lambda t: t.replace("\"", "").strip(), x))
-            return (x[0], x[2], a[0])
-        else:
+        """Return ASN and country information from the Team Cymru DNS service."""
+        if not ipaddr:
             return None
 
-    """__bgpanking return the ranking the float value of an ASN.
-    """
+        lookup = (
+            IPy.IP(str(ipaddr))
+            .reverseName()
+            .replace('.in-addr.arpa.', '.origin.asn.cymru.com')
+        )
+        try:
+            answers = self.presolver.resolve(lookup, 'TXT', search=True)
+        except dns.exception.DNSException:
+            return None
+        if not answers:
+            return None
+
+        answer = answers[0]
+        fields = [field.strip() for field in str(answer).replace('"', '').split('|')]
+        if len(fields) < 3:
+            return None
+        return fields[0], fields[2], answer
 
     def __bgpranking(self, asn=None):
+        """Return the BGP ranking for an ASN."""
         if asn:
             bgpranking = BGPRanking()
             value = bgpranking.query(
@@ -108,32 +105,24 @@ class Extract:
             )
             return value['response']['ranking']['rank']
 
-    def __updatelisttld(self, force=False):
-        ianatldlist = "https://data.iana.org/TLD/tlds-alpha-by-domain.txt"
-        userdir = os.path.expanduser("~")
-        cachedir = os.path.join(userdir, ".DomainClassifier")
-        if not os.path.exists(cachedir):
-            os.mkdir(cachedir)
-        tldcache = os.path.join(cachedir, "tlds")
-        if not os.path.exists(tldcache):
+    def __updatelisttld(self):
+        cachedir = Path.home() / '.DomainClassifier'
+        cachedir.mkdir(exist_ok=True)
+        tldcache = cachedir / 'tlds'
+        if tldcache.exists():
+            tlds = tldcache.read_text(encoding='utf-8')
+        else:
             print(tldcache)
-            req = urllib.Request(ianatldlist)
+            req = Request('https://data.iana.org/TLD/tlds-alpha-by-domain.txt')
             req.add_header(
                 'User-Agent',
                 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0',
             )
-            tlds = (urllib.urlopen(req).read()).decode('utf8')
-            f = open(tldcache, "wb")
-            f.write(tlds.encode("utf-8"))
-            f.close()
+            with urlopen(req) as response:
+                tlds = response.read().decode('utf-8')
+            tldcache.write_text(tlds, encoding='utf-8')
 
-        f = open(tldcache, "r")
-        tlds = f.read()
-        f.close()
-        tlds = tlds.split("\n")
-        for tld in tlds:
-            if tld:
-                self.listtld.append(tld.lower())
+        self.listtld.extend(tld.lower() for tld in tlds.splitlines() if tld)
 
     def __listtld(self):
         if not self.listtld:
@@ -142,7 +131,7 @@ class Extract:
         if self.domain is None:
             return False
         for domain in self.domain:
-            lastpart = domain.rsplit(".")[-1:][0]
+            lastpart = domain.rsplit('.', 1)[-1]
             for tld in self.listtld:
                 if lastpart == tld:
                     self.cleandomain.append(domain)
@@ -150,9 +139,12 @@ class Extract:
         return self.cleandomain
 
     def __regex_findall(self, rawtext, timeout):
-        cache_key = 'cache:regex:{}'.format(self.uuid)
+        cache_key = f'cache:regex:{self.uuid}'
         # Spawn and forkserver require a picklable target and arguments.
-        proc = Proc(target=_store_regex_domains, args=(self.re_domain, rawtext, self._redis_options, cache_key))
+        proc = Process(
+            target=_store_regex_domains,
+            args=(self.re_domain, rawtext, self._redis_options, cache_key),
+        )
         proc.start()
         try:
             proc.join(timeout)
@@ -178,225 +170,157 @@ class Extract:
             return True
         return False
 
-    """potentialdomain method extracts potential domains matching any
-    string that is a serie of string with maximum 63 character separated by a
-    dot. The method used the rawtext defined at the instantiation of the class.
-    This return a list of a potential domain."""
-
     def potentialdomain(self, validTLD=True):
-        self.domain = []
+        """Extract dotted names, optionally restricting them to known TLDs."""
         if self.re_timeout > 0 and self.redis:
             self.domain = list(self.__regex_findall(self.rawtext, self.re_timeout))
         else:
-            domains = self.re_domain.findall(self.rawtext)
-            for x in domains:
-                if x[0]:
-                    self.domain.append(x[0])
+            self.domain = [match[0] for match in self.re_domain.findall(self.rawtext) if match[0]]
         if validTLD:
             self.domain = self.__listtld()
         return self.domain
 
-    """validdomain method used the extracted domains from the domain method to
-    generate a list of valid domain (at least existing in the authoritative DNS
-    server". The records type used are A, AAAA, SOA, MX and CNAME records. This
-    returns a list of existing domain. If the extended flag is true, a set is
-    return with the associated DNS resources found."""
-
     def validdomain(
         self,
-        rtype=['A', 'AAAA', 'SOA', 'MX', 'CNAME'],
+        rtype=('A', 'AAAA', 'SOA', 'MX', 'CNAME'),
         extended=True,
         passive_dns=False,
     ):
+        """Return DNS record tuples or a set of resolved names or passive DNS lines."""
         if extended is False:
             self.vdomain = set()
         else:
             self.vdomain = []
 
         for domain in self.domain:
-            if self.redis:
-                if self.redis.exists('dom_class:cache:{}'.format(domain)):
-                    passive_dns_out = self.redis.smembers('dom_class:cache:{}'.format(domain))
-                    for out in passive_dns_out:
-                        if extended:
-                            out = tuple(out.split('[^]', 2))
-                            self.vdomain.append(out)
-                        else:
-                            self.vdomain.add(out)
-                    continue
+            cache_key = f'dom_class:cache:{domain}'
+            if self.redis and self.redis.exists(cache_key):
+                cached_records = self.redis.smembers(cache_key)
+                if extended:
+                    self.vdomain.extend(tuple(record.split('[^]', 2)) for record in cached_records)
+                else:
+                    self.vdomain.update(cached_records)
+                continue
 
             for dnstype in rtype:
                 try:
-                    answers = self.presolver.query(domain, dnstype)
-                except:
-                    pass
+                    answers = self.presolver.resolve(domain, dnstype, search=True)
+                except dns.exception.DNSException:
+                    continue
+
+                if passive_dns:
+                    for line in answers.rrset.to_text().splitlines():
+                        fields = line.split()
+                        passive_dns_out = (
+                            f'{time.time()}||127.0.0.1||{self.presolver.nameservers[0]}||'
+                            f'{fields[2]}||{domain}||{dnstype}||{fields[4]}||{answers.ttl}||1\n'
+                        )
+                        self.vdomain.add(passive_dns_out)
+                        if self.redis:
+                            self.redis.sadd(cache_key, passive_dns_out)
+                            self.redis.expire(cache_key, self.expire_time)
+                    continue
+
+                if extended:
+                    answer = answers[0]
+                    self.vdomain.append((domain, dnstype, answer))
                 else:
-                    # Passive DNS output
-                    # timestamp||dns-client ||dns-server||RR class||Query||Query Type||Answer||TTL||Count
-                    if passive_dns:
-                        rrset = answers.rrset.to_text().splitlines()
-                        for dns_resp in rrset:
-                            dns_resp = dns_resp.split()
-                            passive_dns_out = (
-                                '{}||127.0.0.1||{}||{}||{}||{}||{}||{}||1\n'.format(
-                                    time.time(),
-                                    self.presolver.nameservers[0],
-                                    dns_resp[2],
-                                    domain,
-                                    dnstype,
-                                    dns_resp[4],
-                                    answers.ttl,
-                                )
-                            )
-                            self.vdomain.add((passive_dns_out))
-                            if self.redis:
-                                self.redis.sadd('dom_class:cache:{}'.format(domain), passive_dns_out)
-                                self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
-                    elif extended:
-                        self.vdomain.append((domain, dnstype, answers[0]))
-                        if self.redis:
-                            self.redis.sadd('dom_class:cache:{}'.format(domain), '{}[^]{}[^]{}'.format(domain, dnstype, answers[0]))
-                            self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
-                    else:
-                        self.vdomain.add((domain))
-                        if self.redis:
-                            self.redis.sadd('dom_class:cache:{}'.format(domain), domain)
-                            self.redis.expire('dom_class:cache:{}'.format(domain), self.expire_time)
+                    self.vdomain.add(domain)
+                if self.redis:
+                    cached_record = f'{domain}[^]{dnstype}[^]{answer}' if extended else domain
+                    self.redis.sadd(cache_key, cached_record)
+                    self.redis.expire(cache_key, self.expire_time)
         return self.vdomain
 
-    """ipaddress method extracts from the domain list the valid IPv4 addresses"""
-
     def ipaddress(self, extended=False):
-
+        """Resolve the extracted domains to IPv4 addresses."""
         if extended is False:
             self.ipaddresses = []
         else:
             self.ipaddresses = set()
 
-        for d in self.domain:
+        for domain in self.domain:
             try:
-                ip = socket.gethostbyname(d)
-            except:
+                ip = socket.gethostbyname(domain)
+            except OSError:
                 continue
 
             if extended is False:
-                self.ipaddresses.append((ip))
+                self.ipaddresses.append(ip)
             else:
                 orig = self.__origin(ipaddr=ip)
                 self.ipaddresses.add((ip, str(orig)))
 
         return self.ipaddresses
 
-    """localizedomain method use the validdomain list (in extended format) to
-    localize per country code the associated resources. The cc argument specifies the
-    country code in ISO 3166-1 alpha-2 format to check for."""
-
     def localizedomain(self, cc=None):
+        """Filter extended DNS records by their ISO 3166-1 alpha-2 country code."""
         self.localdom = []
 
-        for dom in self.vdomain:
-            if dom[1] == 'A':
-                ip = dom[2]
-                try:
-                    orig = self.__origin(ipaddr=dom[2])[1]
-                except:
-                    continue
-                if orig == cc:
-                    self.localdom.append(dom)
-            elif dom[1] == 'CNAME':
-                cname = str(dom[2])
-                ip = socket.gethostbyname(cname)
-                try:
-                    orig = self.__origin(ipaddr=ip)[1]
-                except:
-                    continue
-                if orig == cc:
-                    self.localdom.append(dom)
+        for record in self.vdomain:
+            if record[1] == 'A':
+                ip = record[2]
+            elif record[1] == 'CNAME':
+                ip = socket.gethostbyname(str(record[2]))
+            else:
+                continue
+            origin = self.__origin(ipaddr=ip)
+            if origin and origin[1] == cc:
+                self.localdom.append(record)
         return self.localdom
 
-    """rankdomain method use the validdomain list (in extended format to rank
-    each domain with an IP address. Return a sorted list of tuples (ranking,
-    domain).
-    """
-
     def rankdomain(self):
+        """Return sorted (ranking, domain) pairs from extended DNS records."""
         self.rankdom = []
-
         if self.vdomain:
-            for dom in self.vdomain:
-                rank = None
-                asn = None
-                if dom[1] == 'A':
-                    ip = dom[2]
-                    o = self.__origin(ipaddr=dom[2])
-                    if o:
-                        asn = o[0]
-                    rank = self.__bgpranking(asn)
-                    t = (rank, dom[0])
-                    self.rankdom.append(t)
-                elif dom[1] == 'CNAME':
-                    cname = str(dom[2])
+            for record in self.vdomain:
+                if record[1] == 'A':
+                    origin = self.__origin(ipaddr=record[2])
+                    asn = origin[0] if origin else None
+                elif record[1] == 'CNAME':
                     try:
-                        ip = socket.gethostbyname(cname)
-                    except:
+                        ip = socket.gethostbyname(str(record[2]))
+                    except OSError:
                         continue
-                    try:
-                        asn = self.__origin(ipaddr=ip)[0]
-                    except TypeError:
+                    origin = self.__origin(ipaddr=ip)
+                    if not origin:
                         continue
-                    rank = self.__bgpranking(asn)
-                    t = (rank, dom[0])
-                    self.rankdom.append(t)
-            return sorted(self.rankdom, key=lambda d: d[0])
-
-    """exclude domains from a regular expression. If validdomain was called,
-    it's only on the valid domain list."""
-
-    """exclude domains from a regular expression. If validdomain was called,
-    it's only on the valid domain list."""
+                    asn = origin[0]
+                else:
+                    continue
+                self.rankdom.append((self.__bgpranking(asn), record[0]))
+            return sorted(self.rankdom, key=lambda ranked: ranked[0])
 
     def exclude(self, expression=None):
+        """Keep names that do not match the regular expression."""
         self.cleandomain = []
-
-        excludefilter = re.compile(expression)
-
-        if not self.vdomain:
-            domains = self.domain
-        else:
-            domains = self.vdomain
-
-        for dom in domains:
-            if type(dom) == tuple:
-                dom = dom[0]
-
-            if excludefilter.search(dom):
-                pass
-            else:
-                self.cleandomain.append(dom)
+        pattern = re.compile(expression)
+        for item in self.vdomain or self.domain:
+            domain = item[0] if isinstance(item, tuple) else item
+            if not pattern.search(domain):
+                self.cleandomain.append(domain)
         return self.cleandomain
 
     def include(self, expression=None):
+        """Return the set of names matching the regular expression."""
         self.cleandomain = []
-
-        includefilter = re.compile(expression)
-
-        if not self.vdomain:
-            domains = self.domain
-        else:
-            domains = self.vdomain
-
-        for dom in domains:
-            if type(dom) == tuple:
-                dom = dom[0]
-            if includefilter.search(dom):
-                self.cleandomain.append(dom)
-
+        pattern = re.compile(expression)
+        for item in self.vdomain or self.domain:
+            domain = item[0] if isinstance(item, tuple) else item
+            if pattern.search(domain):
+                self.cleandomain.append(domain)
         return set(self.cleandomain)
 
 
 if __name__ == "__main__":
     c = Extract(
-        rawtext="www.foo.lu www.xxx.com this is a text with a domain called test@foo.lu another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be http://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com something-broken-www.google.com www.google.lu trailing test www.facebook.com www.nic.ru www.youporn.com 8.8.8.8 201.1.1.1 abc.dontexist"
+        rawtext=(
+            'www.foo.lu www.xxx.com this is a text with a domain called test@foo.lu '
+            'another test abc.lu something a.b.c.d.e end of 1.2.3.4 foo.be www.belnet.be '
+            'http://www.cert.be/ www.public.lu www.allo.lu quuxtest www.eurodns.com '
+            'something-broken-www.google.com www.google.lu trailing test www.facebook.com '
+            'www.nic.ru www.youporn.com 8.8.8.8 201.1.1.1 abc.dontexist'
+        )
     )
     c.text(
         rawtext="www.abc.lu www.xxx.com random text a test bric broc www.lemonde.fr www.belnet.be www.foo.be"
